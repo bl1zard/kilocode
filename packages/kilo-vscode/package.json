@@ -112,28 +112,10 @@
         "icon": "$(organization)"
       },
       {
-        "command": "kilo-code.new.kiloClawOpen",
-        "title": "KiloClaw",
-        "category": "Kilo Code",
-        "icon": "$(comment-discussion)"
-      },
-      {
-        "command": "kilo-code.new.marketplaceButtonClicked",
-        "title": "Marketplace",
-        "category": "Kilo Code",
-        "icon": "$(extensions)"
-      },
-      {
         "command": "kilo-code.new.historyButtonClicked",
         "title": "History",
         "category": "Kilo Code",
         "icon": "$(history)"
-      },
-      {
-        "command": "kilo-code.new.profileButtonClicked",
-        "title": "Profile",
-        "category": "Kilo Code",
-        "icon": "$(account)"
       },
       {
         "command": "kilo-code.new.settingsButtonClicked",
@@ -152,24 +134,9 @@
         "icon": "$(organization)"
       },
       {
-        "command": "kilo-code.new.sidebarTitle.kiloClawOpen",
-        "title": "KiloClaw",
-        "icon": "$(comment-discussion)"
-      },
-      {
-        "command": "kilo-code.new.sidebarTitle.marketplaceButtonClicked",
-        "title": "Marketplace",
-        "icon": "$(extensions)"
-      },
-      {
         "command": "kilo-code.new.sidebarTitle.historyButtonClicked",
         "title": "History",
         "icon": "$(history)"
-      },
-      {
-        "command": "kilo-code.new.sidebarTitle.profileButtonClicked",
-        "title": "Profile",
-        "icon": "$(account)"
       },
       {
         "command": "kilo-code.new.sidebarTitle.settingsButtonClicked",
@@ -449,18 +416,6 @@
           "when": "false"
         },
         {
-          "command": "kilo-code.new.sidebarTitle.kiloClawOpen",
-          "when": "false"
-        },
-        {
-          "command": "kilo-code.new.sidebarTitle.marketplaceButtonClicked",
-          "when": "false"
-        },
-        {
-          "command": "kilo-code.new.sidebarTitle.profileButtonClicked",
-          "when": "false"
-        },
-        {
           "command": "kilo-code.new.sidebarTitle.settingsButtonClicked",
           "when": "false"
         }
@@ -482,23 +437,8 @@
           "when": "view == kilo-code.SidebarProvider"
         },
         {
-          "command": "kilo-code.new.sidebarTitle.kiloClawOpen",
-          "group": "navigation@3",
-          "when": "view == kilo-code.SidebarProvider"
-        },
-        {
-          "command": "kilo-code.new.sidebarTitle.marketplaceButtonClicked",
-          "group": "navigation@4",
-          "when": "view == kilo-code.SidebarProvider"
-        },
-        {
-          "command": "kilo-code.new.sidebarTitle.profileButtonClicked",
-          "group": "navigation@5",
-          "when": "view == kilo-code.SidebarProvider"
-        },
-        {
           "command": "kilo-code.new.sidebarTitle.settingsButtonClicked",
-          "group": "navigation@6",
+          "group": "navigation@3",
           "when": "view == kilo-code.SidebarProvider"
         }
       ],
@@ -533,13 +473,8 @@
           "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
         },
         {
-          "command": "kilo-code.new.profileButtonClicked",
-          "group": "navigation@2",
-          "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
-        },
-        {
           "command": "kilo-code.new.settingsButtonClicked",
-          "group": "navigation@3",
+          "group": "navigation@2",
           "when": "activeWebviewPanelId == kilo-code.new.TabPanel"
         }
       ],
@@ -867,28 +802,22 @@
         },
         "kilo-code.new.model.providerID": {
           "type": "string",
-          "default": "kilo",
+          "default": "openai",
           "description": "Default model provider ID for new sessions"
         },
         "kilo-code.new.model.modelID": {
           "type": "string",
-          "default": "kilo-auto/free",
+          "default": "gpt-4o-mini",
           "description": "Default model ID for new sessions"
         },
         "kilo-code.new.autocomplete.model": {
           "type": "string",
           "enum": [
-            "mistralai/codestral-2508",
-            "inception/mercury-edit-2",
-            "inception/mercury-next-edit",
             "codestral-2508",
             "mercury-edit-2",
             "mercury-next-edit"
           ],
           "enumDescriptions": [
-            "Codestral via Kilo Gateway",
-            "Mercury Edit 2 (FIM) via Kilo Gateway",
-            "Mercury Edit 2 (Next Edit), multi-line edit predictions with jump-to-edit UX, via Kilo Gateway",
             "Codestral via your connected Mistral provider API key",
             "Mercury Edit 2 (FIM) via your connected Inception provider API key",
             "Mercury Edit 2 (Next Edit), multi-line edit predictions with jump-to-edit UX, via your connected Inception provider API key"
@@ -898,16 +827,14 @@
         "kilo-code.new.autocomplete.provider": {
           "type": "string",
           "enum": [
-            "kilo",
             "mistral",
             "inception"
           ],
           "enumDescriptions": [
-            "Use autocomplete models through Kilo Gateway",
             "Use autocomplete models through your connected Mistral provider API key",
             "Use autocomplete models through your connected Inception provider API key"
           ],
-          "description": "Provider to use for inline autocomplete suggestions. If unset, Kilo Gateway is used."
+          "description": "Provider to use for inline autocomplete suggestions."
         },
         "kilo-code.new.autocomplete.enableAutoTrigger": {
           "type": "boolean",

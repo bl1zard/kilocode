@@ -1,6 +1,7 @@
 import type { KiloConnectionService } from "./cli-backend/connection-service"
 import { routeAutocompleteMessage } from "./autocomplete/settings"
-import { handleSpeechToTextCancel, handleSpeechToTextStart, handleSpeechToTextStop } from "../speech-to-text/handler"
+
+const SPEECH_TO_TEXT_DISABLED = "Speech-to-text is disabled in this enterprise build."
 
 type Msg = {
   type: string
@@ -20,22 +21,29 @@ export async function routeInputToolMessage(message: Msg, ctx: Ctx): Promise<boo
 
   if (message.type === "speechToTextStart") {
     if (!message.requestId) return true
-    handleSpeechToTextStart(
-      { requestId: message.requestId, model: message.model, language: message.language },
-      ctx.post,
-    )
+    ctx.post({
+      type: "speechToTextError",
+      error: SPEECH_TO_TEXT_DISABLED,
+      code: "disabled",
+      requestId: message.requestId,
+    })
     return true
   }
 
   if (message.type === "speechToTextStop") {
     if (!message.requestId) return true
-    handleSpeechToTextStop(ctx.connection, { requestId: message.requestId }, ctx.dir, ctx.post)
+    ctx.post({
+      type: "speechToTextError",
+      error: SPEECH_TO_TEXT_DISABLED,
+      code: "disabled",
+      requestId: message.requestId,
+    })
     return true
   }
 
   if (message.type === "speechToTextCancel") {
     if (!message.requestId) return true
-    handleSpeechToTextCancel({ requestId: message.requestId }, ctx.post)
+    ctx.post({ type: "speechToTextCancelled", requestId: message.requestId })
     return true
   }
 

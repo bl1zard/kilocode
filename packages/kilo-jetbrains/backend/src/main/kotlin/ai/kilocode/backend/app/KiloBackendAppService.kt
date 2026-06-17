@@ -17,8 +17,6 @@ import ai.kilocode.jetbrains.api.model.Config
 import ai.kilocode.jetbrains.api.model.ConfigWarnings200ResponseInner
 import ai.kilocode.jetbrains.api.model.KiloNotifications200ResponseInner
 import ai.kilocode.jetbrains.api.model.KiloProfile200Response
-import ai.kilocode.jetbrains.api.model.ProviderOauthAuthorizeRequest
-import ai.kilocode.jetbrains.api.model.ProviderOauthCallbackRequest
 import ai.kilocode.rpc.dto.DeviceAuthDto
 import ai.kilocode.rpc.dto.ConfigPatchDto
 import ai.kilocode.rpc.dto.HealthDto
@@ -45,9 +43,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -56,6 +51,8 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
+
+private const val ACCOUNT_DISABLED = "Login is disabled in this enterprise build."
 
 /**
  * App-level orchestrator that owns the CLI server lifecycle and
@@ -521,11 +518,13 @@ class KiloBackendAppService private constructor(
      * as failures.
      */
     private suspend fun fetchProfile(): FetchResult<KiloProfile200Response?> {
+        log.info("Profile: disabled in enterprise build")
+        return FetchResult.ok(null)
         val client = connection.appLoadApi
             ?: return FetchResult.ok(null)
         return try {
-            val response = client.kiloProfile()
-            log.info("Profile: ${response.profile.email}")
+            val response: KiloProfile200Response? = null
+            log.info("Profile: disabled in enterprise build")
             FetchResult.ok(response)
         } catch (e: ClientException) {
             if (e.statusCode == 401) {
@@ -561,10 +560,12 @@ class KiloBackendAppService private constructor(
     }
 
     private suspend fun fetchNotifications(): FetchResult<List<KiloNotifications200ResponseInner>> {
+        log.info("Kilo notifications: disabled in enterprise build")
+        return FetchResult.ok(emptyList())
         val client = connection.appLoadApi
             ?: return FetchResult.fail("notifications", detail = "Not connected")
         return try {
-            FetchResult.ok(client.kiloNotifications())
+            FetchResult.ok(emptyList())
         } catch (e: Exception) {
             log.warn("Notifications fetch failed: ${e.message}", e)
             logResponseBody("notifications", e)
@@ -771,15 +772,8 @@ class KiloBackendAppService private constructor(
      * Returns [DeviceAuthDto] containing the verification URL and code for display in the UI.
      */
     suspend fun startLogin(directory: String?): DeviceAuthDto {
-        val client = connection.api ?: throw IllegalStateException("Not connected")
-        val body = ProviderOauthAuthorizeRequest(method = 0.0)
-        val response = client.providerOauthAuthorize(providerID = "kilo", directory = directory, providerOauthAuthorizeRequest = body)
-        val match = response.instructions.let { Regex("""code:\s*(\S+)""", RegexOption.IGNORE_CASE).find(it) }
-        return DeviceAuthDto(
-            code = match?.groupValues?.get(1),
-            verificationUrl = response.url,
-            expiresIn = 900,
-        )
+        directory?.let { }
+        throw IllegalStateException(ACCOUNT_DISABLED)
     }
 
     /**
@@ -788,9 +782,8 @@ class KiloBackendAppService private constructor(
      * Returns the user profile on success, or null if the login could not be completed.
      */
     suspend fun completeLogin(directory: String?): KiloProfile200Response? {
-        val client = connection.api ?: throw IllegalStateException("Not connected")
-        client.providerOauthCallback(providerID = "kilo", directory = directory, providerOauthCallbackRequest = ProviderOauthCallbackRequest(method = 0.0))
-        return refreshProfile()
+        directory?.let { }
+        return null
     }
 
     /**
@@ -798,14 +791,12 @@ class KiloBackendAppService private constructor(
      * Removes credentials and clears the profile from app state.
      */
     suspend fun logout(): Boolean {
-        val client = connection.api ?: throw IllegalStateException("Not connected")
-        val result = client.authRemove(providerID = "kilo")
-        val current = _appState.value
-        if (current is KiloAppState.Ready) {
+        val enterpriseCurrent = _appState.value
+        if (enterpriseCurrent is KiloAppState.Ready) {
             profile = null
-            setAppReady(current.data.copy(profile = null))
+            setAppReady(enterpriseCurrent.data.copy(profile = null))
         }
-        return result
+        return true
     }
 
     /**
@@ -814,23 +805,8 @@ class KiloBackendAppService private constructor(
      * Returns the updated profile after the switch.
      */
     suspend fun setOrganization(organizationId: String?): KiloProfile200Response? {
-        val http = connection.apiClient ?: throw IllegalStateException("Not connected")
-        val body = JsonObject(
-            mapOf("organizationId" to (organizationId?.let { JsonPrimitive(it) } ?: JsonNull)),
-        ).toString()
-        val request = Request.Builder()
-            .url("http://127.0.0.1:$port/kilo/organization")
-            .header("Accept", "application/json")
-            .post(body.toRequestBody("application/json".toMediaType()))
-            .build()
-        withContext(Dispatchers.IO) {
-            http.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IllegalStateException("Organization switch failed: HTTP ${response.code} ${response.message}")
-                }
-            }
-        }
-        return refreshProfile()
+        organizationId?.let { }
+        throw IllegalStateException(ACCOUNT_DISABLED)
     }
 
     override fun dispose() {

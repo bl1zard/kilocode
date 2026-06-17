@@ -201,7 +201,7 @@ export const VscodeSessionTurn: Component<VscodeSessionTurnProps> = (props) => {
 
           {/* Error handling */}
           <Show when={error()}>
-            {(err) => <ErrorDisplay error={err() as ErrorDisplayProps["error"]} onLogin={server.goToLogin} />}
+            {(err) => <ErrorDisplay error={err() as ErrorDisplayProps["error"]} />}
           </Show>
         </div>
       )}

@@ -4,7 +4,6 @@ package ai.kilocode.backend.rpc
 
 import ai.kilocode.backend.app.KiloAppState
 import ai.kilocode.backend.app.KiloBackendAppService
-import ai.kilocode.backend.telemetry.KiloBackendTelemetry
 import ai.kilocode.backend.app.ConfigWarning
 import ai.kilocode.backend.app.LoadError
 import ai.kilocode.backend.app.LoadProgress
@@ -103,7 +102,11 @@ class KiloAppRpcApiImpl : KiloAppRpcApi {
         app.setOrganization(organizationId)?.let(::profileDto)
 
     override suspend fun captureTelemetry(capture: TelemetryCaptureDto) {
-        service<KiloBackendTelemetry>().capture(app.http, app.port, capture.event, capture.properties)
+        void(capture)
+    }
+
+    private fun void(vararg values: Any?) {
+        values.forEach { _ -> }
     }
 
     private fun dto(state: KiloAppState): KiloAppStateDto =

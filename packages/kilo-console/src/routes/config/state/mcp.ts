@@ -1,12 +1,10 @@
 import { createMemo, createResource, createSignal } from "solid-js"
 import type { McpLocalConfig, McpRemoteConfig, McpStatus } from "@kilocode/sdk/v2/client"
-import { parse as parseYaml } from "yaml"
 import type { Snapshot } from "../../../client"
 import { authenticateMcp, connectMcp, disconnectMcp } from "../../../client"
 import { useConfig } from "../../../context/config"
 import { clean, errMsg, text, words, type McpMap } from "../../../shared/utils"
 
-const market = "https://api.kilo.ai/api/marketplace/mcps"
 const pattern = /^[\w\-@.]+$/
 
 type Resolved = Snapshot["overlay"]["collections"][string][number]
@@ -218,18 +216,7 @@ function item(input: unknown) {
 }
 
 async function fetchMarket() {
-  const response = await fetch(market)
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-  const body = await response.text()
-  const parsed = (() => {
-    try {
-      return JSON.parse(body) as { items?: unknown[] }
-    } catch {
-      return parseYaml(body) as { items?: unknown[] }
-    }
-  })()
-  const items = Array.isArray(parsed.items) ? parsed.items : []
-  return items.flatMap(item).sort((a, b) => a.name.localeCompare(b.name))
+  return [] as McpMarket[]
 }
 
 function escape(input: string) {
@@ -437,7 +424,7 @@ export function useMcpSettings() {
   }
 
   function openMarket() {
-    setMode("market")
+    openManual()
   }
 
   function openManual() {
@@ -455,11 +442,9 @@ export function useMcpSettings() {
   }
 
   function openInstall(item: McpMarket) {
-    setChoice(item)
-    const list = Array.isArray(item.content) ? item.content : []
-    setMethodName(list[0]?.name ?? "")
-    setParams({})
-    setMode("install")
+    ctx.fail("Marketplace is disabled in this enterprise build.")
+    void item
+    return
   }
 
   function edit(row: McpRow) {

@@ -1,6 +1,6 @@
 /**
  * Telemetry event names for the Kilo VS Code extension.
- * These are forwarded to the CLI server via POST /telemetry/capture.
+ * Events are retained for call-site compatibility; enterprise builds do not send them.
  */
 export enum TelemetryEventName {
   // Task Lifecycle

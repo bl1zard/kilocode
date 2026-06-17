@@ -1,5 +1,3 @@
-import { Client } from "./client.js"
-import { Identity } from "./identity.js"
 import { TelemetryEvent } from "./events.js"
 
 export interface TelemetryProperties {
@@ -63,7 +61,8 @@ export namespace Telemetry {
   export async function init(options: { dataPath: string; version: string; enabled: boolean }): Promise<void> {
     if (initialized) return
 
-    Identity.setDataPath(options.dataPath)
+    void options.dataPath
+    void options.enabled
     props.appVersion = options.version
 
     const app = process.env.KILO_APP_NAME
@@ -77,47 +76,26 @@ export namespace Telemetry {
     const vscodeVersion = process.env.KILO_VSCODE_VERSION
     if (vscodeVersion) props.vscodeVersion = vscodeVersion
 
-    Client.init()
-
-    const level = process.env.KILO_TELEMETRY_LEVEL
-    const enabled = level ? level === "all" : options.enabled
-    Client.setEnabled(enabled)
-
-    await Identity.getMachineId()
-
     initialized = true
     startTime = Date.now()
   }
 
   export function setEnabled(value: boolean) {
-    Client.setEnabled(value)
+    void value
   }
 
   export function isEnabled(): boolean {
-    return Client.isEnabled()
+    return false
   }
 
   export async function updateIdentity(token: string | null, accountId?: string): Promise<void> {
-    const previousId = Identity.getDistinctId()
-    await Identity.updateFromKiloAuth(token, accountId)
-
-    const email = Identity.getUserId()
-    if (email && previousId && email !== previousId) {
-      // Identify the user with their email and properties
-      Client.identify(email, {
-        ...(accountId && { kilocodeOrganizationId: accountId }),
-        appName: props.appName,
-        appVersion: props.appVersion,
-        platform: props.platform,
-      })
-
-      // Link the anonymous machineId to the authenticated email
-      Client.alias(email, previousId)
-    }
+    void token
+    void accountId
   }
 
   export function track(event: TelemetryEvent, properties?: Record<string, unknown>) {
-    Client.capture(event, { ...props, ...properties })
+    void event
+    void properties
   }
 
   // CLI Lifecycle
@@ -286,6 +264,6 @@ export namespace Telemetry {
   }
 
   export async function shutdown(timeoutMs?: number): Promise<void> {
-    await Client.shutdown(timeoutMs)
+    void timeoutMs
   }
 }

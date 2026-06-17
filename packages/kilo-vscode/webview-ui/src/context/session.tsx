@@ -69,7 +69,7 @@ import { PartStash } from "./part-stash"
 import { mergeParts, sameParts } from "./session-parts"
 import { state as todoState } from "./todo-revert"
 import { getVariant, sessionVariantKeys, transferVariants, variantKey } from "./session-variant-store"
-import { KILO_AUTO, KILO_PROVIDER_ID, parseModelString } from "../../../src/shared/provider-model"
+import { ENTERPRISE_DEFAULT_MODEL, KILO_PROVIDER_ID, parseModelString } from "../../../src/shared/provider-model"
 import { reviewMetadata, type ReviewMessageData } from "../../../src/shared/review-comments"
 import { visibleMessages as filterVisibleMessages } from "./session-queue"
 import { createAbortState } from "./abort-state"
@@ -535,7 +535,7 @@ export const SessionProvider: ParentComponent = (props) => {
       mode: getModeModel(agentName),
       global: getGlobalModel(),
       recent: store.recentModels,
-      fallback: KILO_AUTO,
+      fallback: ENTERPRISE_DEFAULT_MODEL,
     })
   }
 
@@ -2449,16 +2449,12 @@ export const SessionProvider: ParentComponent = (props) => {
   }
 
   function selectCloudSession(cloudSessionId: string) {
-    if (!server.isConnected()) {
-      console.warn("[Kilo New] Cannot select cloud session: not connected")
-      return
-    }
-    const key = `cloud:${cloudSessionId}`
-    setCloudPreviewId(cloudSessionId)
-    setCurrentSessionID(key)
-    setDraftSessionID(key)
-    setLoading(true)
-    vscode.postMessage({ type: "requestCloudSessionData", sessionId: cloudSessionId })
+    void cloudSessionId
+    showToast({
+      variant: "error",
+      title: "Cloud sessions disabled",
+      description: "Cloud sessions are disabled in this enterprise build.",
+    })
   }
 
   function deleteSession(id: string) {

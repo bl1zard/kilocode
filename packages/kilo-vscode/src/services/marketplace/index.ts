@@ -39,13 +39,9 @@ export class MarketplaceService {
     options: InstallMarketplaceItemOptions,
     workspace?: string,
   ): Promise<InstallResult> {
-    const result = await this.installer.install(item, options, workspace)
-
-    if (result.success) {
-      vscode.window.showInformationMessage(`Successfully installed ${item.name}`)
-    }
-
-    return result
+    void options
+    void workspace
+    return { success: false, slug: item.id, error: "Marketplace is disabled in this enterprise build." }
   }
 
   async remove(item: MarketplaceItem, scope: "project" | "global", workspace?: string): Promise<RemoveResult> {

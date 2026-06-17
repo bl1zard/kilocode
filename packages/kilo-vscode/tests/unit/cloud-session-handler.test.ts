@@ -2,24 +2,25 @@ import { describe, expect, it } from "bun:test"
 import {
   handleImportAndSend,
   handleRequestCloudSessionData,
+  handleRequestCloudSessions,
   type CloudSessionContext,
 } from "../../src/kilo-provider/handlers/cloud-session"
-
-function stalled(options?: { signal?: AbortSignal }) {
-  return new Promise<never>((_resolve, reject) => {
-    options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true })
-  })
-}
 
 function context(sent: unknown[]) {
   return {
     client: {
       kilo: {
+        cloudSessions: () => {
+          throw new Error("cloudSessions should not be called")
+        },
         cloud: {
           session: {
-            get: (_params: { id: string }, options?: { signal?: AbortSignal }) => stalled(options),
-            import: (_params: { sessionId: string; directory: string }, options?: { signal?: AbortSignal }) =>
-              stalled(options),
+            get: () => {
+              throw new Error("cloud.session.get should not be called")
+            },
+            import: () => {
+              throw new Error("cloud.session.import should not be called")
+            },
           },
         },
       },
@@ -33,60 +34,40 @@ function context(sent: unknown[]) {
   } as unknown as CloudSessionContext
 }
 
-describe("cloud session preview handler", () => {
-  it("reports a failure when the CLI preview request stalls", async () => {
-    const timeout = AbortSignal.timeout
-    AbortSignal.timeout = () => {
-      const controller = new AbortController()
-      queueMicrotask(() => controller.abort(new DOMException("The operation timed out", "TimeoutError")))
-      return controller.signal
-    }
+describe("cloud session handlers", () => {
+  it("returns an empty cloud session list without calling the cloud API", async () => {
+    const sent: unknown[] = []
 
-    try {
-      const sent: unknown[] = []
-      const outcome = await Promise.race([
-        handleRequestCloudSessionData(context(sent), "cloud-session").then(() => "resolved" as const),
-        Bun.sleep(50).then(() => "still-pending" as const),
-      ])
+    await handleRequestCloudSessions(context(sent), { limit: 50 })
 
-      expect(outcome).toBe("resolved")
-      expect(sent).toEqual([
-        {
-          type: "cloudSessionImportFailed",
-          cloudSessionId: "cloud-session",
-          error: "The operation timed out",
-        },
-      ])
-    } finally {
-      AbortSignal.timeout = timeout
-    }
+    expect(sent).toEqual([{ type: "cloudSessionsLoaded", sessions: [], nextCursor: null }])
   })
 
-  it("reports a failure when the CLI import request stalls", async () => {
-    const timeout = AbortSignal.timeout
-    AbortSignal.timeout = () => {
-      const controller = new AbortController()
-      queueMicrotask(() => controller.abort(new DOMException("The operation timed out", "TimeoutError")))
-      return controller.signal
-    }
+  it("fails closed for cloud session preview without calling the cloud API", async () => {
+    const sent: unknown[] = []
 
-    try {
-      const sent: unknown[] = []
-      const outcome = await Promise.race([
-        handleImportAndSend(context(sent), "cloud-session", "Continue").then(() => "resolved" as const),
-        Bun.sleep(50).then(() => "still-pending" as const),
-      ])
+    await handleRequestCloudSessionData(context(sent), "cloud-session")
 
-      expect(outcome).toBe("resolved")
-      expect(sent).toEqual([
-        {
-          type: "cloudSessionImportFailed",
-          cloudSessionId: "cloud-session",
-          error: "The operation timed out",
-        },
-      ])
-    } finally {
-      AbortSignal.timeout = timeout
-    }
+    expect(sent).toEqual([
+      {
+        type: "cloudSessionImportFailed",
+        cloudSessionId: "cloud-session",
+        error: "Cloud sessions are disabled in this enterprise build.",
+      },
+    ])
+  })
+
+  it("fails closed for cloud session import without calling the cloud API", async () => {
+    const sent: unknown[] = []
+
+    await handleImportAndSend(context(sent), "cloud-session", "Continue")
+
+    expect(sent).toEqual([
+      {
+        type: "cloudSessionImportFailed",
+        cloudSessionId: "cloud-session",
+        error: "Cloud sessions are disabled in this enterprise build.",
+      },
+    ])
   })
 })

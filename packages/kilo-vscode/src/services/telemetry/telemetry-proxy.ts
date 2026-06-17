@@ -1,17 +1,13 @@
-import * as vscode from "vscode"
 import { TelemetryEventName, type TelemetryPropertiesProvider } from "./types"
-import { buildTelemetryPayload, buildTelemetryAuthHeader } from "./telemetry-proxy-utils"
 
 /**
- * Singleton proxy that captures telemetry events and forwards them to the CLI
- * server via POST /telemetry/capture. The CLI handles PostHog delivery.
+ * Singleton telemetry proxy.
+ *
+ * Enterprise build: telemetry is hard-disabled. Methods remain available so
+ * existing call sites compile, but no events are logged, enriched, or sent.
  */
 export class TelemetryProxy {
   private static singleton: TelemetryProxy | undefined
-
-  private url: string | undefined
-  private password: string | undefined
-  private provider: TelemetryPropertiesProvider | undefined
 
   private constructor() {}
 
@@ -20,69 +16,31 @@ export class TelemetryProxy {
   }
 
   static capture(event: TelemetryEventName, properties?: Record<string, unknown>) {
-    console.log("[telemetry]", event, properties ?? "")
-    TelemetryProxy.getInstance().capture(event, properties)
+    void event
+    void properties
   }
 
-  /**
-   * Configure the CLI server connection. Must be called before capture() will send events.
-   */
   configure(url: string, password: string) {
-    this.url = url
-    this.password = password
+    void url
+    void password
   }
 
   setProvider(provider: TelemetryPropertiesProvider) {
-    this.provider = provider
+    void provider
   }
 
   isVSCodeTelemetryEnabled(): boolean {
-    return vscode.env.isTelemetryEnabled
+    return false
   }
 
-  /**
-   * Fire-and-forget capture. Enriches with provider properties, then POSTs to CLI.
-   */
   capture(event: TelemetryEventName, properties?: Record<string, unknown>) {
-    if (!this.isVSCodeTelemetryEnabled()) return
-    if (!this.url || !this.password) return
-
-    const built = buildTelemetryPayload(event, properties, this.provider?.getTelemetryProperties())
-    const payload = JSON.stringify(built)
-    const auth = buildTelemetryAuthHeader(this.password)
-
-    fetch(`${this.url}/telemetry/capture`, {
-      method: "POST",
-      headers: {
-        Authorization: auth,
-        "Content-Type": "application/json",
-      },
-      body: payload,
-    }).catch((err) => console.error("[Kilo New] Telemetry capture failed:", err))
+    void event
+    void properties
   }
 
-  /**
-   * Propagate runtime telemetry consent changes to the CLI. The CLI subprocess
-   * reads `KILO_TELEMETRY_LEVEL` once at spawn — without this call, toggling
-   * VS Code telemetry consent leaves the CLI's PostHog client stuck on its
-   * spawn-time state until the process restarts.
-   */
   setEnabled(enabled: boolean) {
-    if (!this.url || !this.password) return
-
-    const auth = buildTelemetryAuthHeader(this.password)
-    fetch(`${this.url}/telemetry/setEnabled`, {
-      method: "POST",
-      headers: {
-        Authorization: auth,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ enabled }),
-    }).catch((err) => console.error("[Kilo New] Telemetry setEnabled failed:", err))
+    void enabled
   }
 
-  /**
-   * No-op — the CLI server handles PostHog shutdown.
-   */
   shutdown() {}
 }

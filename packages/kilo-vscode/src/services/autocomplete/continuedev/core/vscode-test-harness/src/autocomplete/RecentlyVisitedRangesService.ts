@@ -9,7 +9,7 @@ import * as vscode from "vscode"
  */
 export class RecentlyVisitedRangesService {
   private cache: LRUCache<string, Array<AutocompleteCodeSnippet & { timestamp: number }>>
-  // Default value, we override in initWithPostHog
+  // Default value; enterprise builds do not load remote feature flags.
   private numSurroundingLines = 20
   private maxRecentFiles = 3
   private maxSnippetsPerFile = 3
@@ -21,10 +21,10 @@ export class RecentlyVisitedRangesService {
       max: this.maxRecentFiles,
     })
 
-    void this.initWithPostHog()
+    void this.initWithLocalDefaults()
   }
 
-  private async initWithPostHog() {
+  private async initWithLocalDefaults() {
     const recentlyVisitedRangesNumSurroundingLinesOptions = [null, 5, 10, 15, 20] // was feature flagged
     const recentlyVisitedRangesNumSurroundingLines = recentlyVisitedRangesNumSurroundingLinesOptions[0]
 

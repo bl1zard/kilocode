@@ -1,5 +1,6 @@
 package ai.kilocode.client.session
 
+import ai.kilocode.client.KiloNotifications
 import ai.kilocode.client.app.KiloAppService
 import ai.kilocode.client.app.KiloSessionService
 import ai.kilocode.client.app.KiloWorkspaceService
@@ -40,7 +41,6 @@ import ai.kilocode.client.session.ui.style.SessionUiStyle
 import ai.kilocode.client.session.views.LoginRequiredView
 import ai.kilocode.client.session.views.permission.PermissionView
 import ai.kilocode.client.session.views.question.QuestionView
-import ai.kilocode.client.settings.profile.UserProfileConfigurable
 import ai.kilocode.client.telemetry.Telemetry
 import ai.kilocode.client.ui.layout.Stack
 import ai.kilocode.client.util.UiTimerSource
@@ -63,14 +63,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.options.Configurable
-import com.intellij.openapi.options.ConfigurableWithId
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import java.util.function.Predicate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -697,13 +693,7 @@ class SessionUi(
     }
 
     private fun openProfileSettings() {
-        ShowSettingsUtil.getInstance().showSettingsDialog(
-            project,
-            Predicate { cfg: Configurable ->
-                cfg is ConfigurableWithId && cfg.getId() == UserProfileConfigurable.ID
-            },
-            { cfg: Configurable -> cfg.focusOn(UserProfileConfigurable.FOCUS_ACCOUNT_COMBO) },
-        )
+        KiloNotifications.error(project, "Login disabled", "Login is disabled in this enterprise build.")
     }
 
     override fun dispose() {

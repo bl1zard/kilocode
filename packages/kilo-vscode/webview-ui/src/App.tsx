@@ -11,7 +11,6 @@ import { File } from "@kilocode/kilo-ui/file"
 import { DataProvider } from "@kilocode/kilo-ui/context/data"
 import { Toast } from "@kilocode/kilo-ui/toast"
 import Settings from "./components/settings/Settings"
-import ProfileView from "./components/profile/ProfileView"
 import { VSCodeProvider, useVSCode } from "./context/vscode"
 import { ServerProvider, useServer } from "./context/server"
 import { ProviderProvider, useProvider } from "./context/provider"
@@ -39,8 +38,8 @@ import { KiloEmbeddingModelsProvider } from "./context/kilo-embedding-models"
 import type { Message as SDKMessage, Part as SDKPart } from "@kilocode/sdk/v2"
 import "./styles/chat.css"
 
-type ViewType = "newTask" | "history" | "profile" | "settings" | "subAgentViewer"
-const VALID_VIEWS = new Set<string>(["newTask", "history", "profile", "settings", "subAgentViewer"])
+type ViewType = "newTask" | "history" | "settings" | "subAgentViewer"
+const VALID_VIEWS = new Set<string>(["newTask", "history", "settings", "subAgentViewer"])
 
 /**
  * Bridge our session store to the DataProvider's expected Data shape.
@@ -202,7 +201,6 @@ const AppContent: Component = () => {
   // race conditions with SettingsEditorProvider's navigate messages.
   const [migrationNeeded, setMigrationNeeded] = createSignal(false)
   const session = useSession()
-  const server = useServer()
   const vscode = useVSCode()
 
   const handleViewAction = (action: string) => {
@@ -213,9 +211,6 @@ const AppContent: Component = () => {
         break
       case "historyButtonClicked":
         setCurrentView("history")
-        break
-      case "profileButtonClicked":
-        setCurrentView("profile")
         break
       case "settingsButtonClicked":
         setCurrentView("settings")
@@ -262,11 +257,6 @@ const AppContent: Component = () => {
         if (message.tab) setSettingsTab(message.tab)
         setCurrentView(message.view as ViewType)
         vscode.postMessage({ type: "settingsTabChanged", tab: message.tab })
-      }
-      if (message?.type === "openCloudSession" && message.sessionId) {
-        console.log("[Kilo New] App: ☁️ openCloudSession:", message.sessionId)
-        session.selectCloudSession(message.sessionId)
-        setCurrentView("newTask")
       }
       handleKiloModel(message)
       handleForked(message)
@@ -326,13 +316,6 @@ const AppContent: Component = () => {
             </Match>
             <Match when={currentView() === "history"}>
               <HistoryView onSelectSession={handleSelectSession} onBack={() => setCurrentView("newTask")} />
-            </Match>
-            <Match when={currentView() === "profile"}>
-              <ProfileView
-                profileData={server.profileData()}
-                deviceAuth={server.deviceAuth()}
-                onLogin={server.startLogin}
-              />
             </Match>
             <Match when={currentView() === "settings"}>
               <Settings
