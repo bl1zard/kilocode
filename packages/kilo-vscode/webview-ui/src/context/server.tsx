@@ -28,6 +28,7 @@ interface ServerContextValue {
 export const ServerContext = createContext<ServerContextValue>()
 
 const initialDeviceAuth: DeviceAuthState = { status: "idle" }
+const LOGIN_DISABLED_MESSAGE = "Login is disabled in this enterprise build."
 
 export const ServerProvider: ParentComponent = (props) => {
   const vscode = useVSCode()
@@ -147,24 +148,10 @@ export const ServerProvider: ParentComponent = (props) => {
   })
 
   const startLogin = () => {
-    const status = deviceAuth().status
-    if (status === "initiating" || status === "pending") {
-      return
-    }
-    setDeviceAuth({ status: "initiating" })
-    vscode.postMessage({ type: "login" })
+    setDeviceAuth({ status: "error", error: LOGIN_DISABLED_MESSAGE })
   }
 
-  /**
-   * Route any "Sign In" action through the Profile view so the user always
-   * sees the device-auth UI (URL, QR, code, timer, cancel). Entry points
-   * outside the Profile page — e.g. the Kilo Gateway card in the Providers
-   * settings tab, or the provider picker — must call this helper instead of
-   * `startLogin()` directly. Otherwise the login flow runs silently and the
-   * user has no way to see the code or cancel if the browser is dismissed.
-   */
   const goToLogin = () => {
-    window.postMessage({ type: "navigate", view: "profile" }, "*")
     startLogin()
   }
 

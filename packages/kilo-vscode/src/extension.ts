@@ -2,12 +2,10 @@ import * as vscode from "vscode"
 import { KiloProvider } from "./KiloProvider"
 import { AgentManagerProvider } from "./agent-manager/AgentManagerProvider"
 import { VscodeHost } from "./agent-manager/vscode-host"
-import { KiloClawProvider } from "./kiloclaw/KiloClawProvider"
 import { DiffViewerProvider } from "./diff/DiffViewerProvider"
 import { DiffSourceCatalog } from "./diff/sources/catalog"
 import { DiffVirtualProvider } from "./DiffVirtualProvider"
 import { SettingsEditorProvider } from "./SettingsEditorProvider"
-import { MarketplacePanelProvider } from "./MarketplacePanelProvider"
 import { SubAgentViewerProvider } from "./SubAgentViewerProvider"
 import { EXTENSION_DISPLAY_NAME } from "./constants"
 import { KiloConnectionService } from "./services/cli-backend"
@@ -75,10 +73,8 @@ export function activate(context: vscode.ExtensionContext) {
       const config = connectionService.getServerConfig()
       if (config) {
         telemetry.configure(config.baseUrl, config.password)
-        // Sync the CLI's PostHog client with the current consent state. The
-        // CLI reads KILO_TELEMETRY_LEVEL once at spawn, so without this call
-        // a fresh CLI started while VS Code telemetry was off would stay
-        // opted out for the rest of the session.
+        // Telemetry is hard-disabled; these calls preserve compatibility with
+        // the old connection lifecycle without sending data.
         telemetry.setEnabled(vscode.env.isTelemetryEnabled)
       }
       try {
@@ -96,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   // Propagate runtime telemetry consent changes to the CLI subprocess so its
-  // PostHog client stays in sync with the user's VS Code telemetry setting.
+  // Enterprise telemetry is hard-disabled; this keeps existing state messages no-op compatible.
   context.subscriptions.push(
     vscode.env.onDidChangeTelemetryEnabled((enabled) => {
       telemetry.setEnabled(enabled)
@@ -112,8 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Track all open tab panel providers so toolbar button commands can target them.
   // NOTE: The editor/title toolbar for tab panels intentionally omits Agent Manager
-  // and Marketplace buttons (unlike the sidebar). Too many icons causes VS Code to
-  // collapse them into a "..." overflow menu, hiding important buttons like Settings.
+  // to avoid crowding important buttons like Settings into VS Code's overflow menu.
   const tabPanels = new Map<vscode.WebviewPanel, KiloProvider>()
   const activeTabProvider = () => {
     for (const [panel, p] of tabPanels) {
@@ -141,10 +136,6 @@ export function activate(context: vscode.ExtensionContext) {
   const skip = ["kilo-code.new.agentManagerOpen", "kilo-code.new.agentManager.showTerminal"]
   if (process.platform === "darwin") skip.push("kilo-code.new.agentManager.runScript")
   ensureCommandsSkipShell(skip)
-
-  // Create KiloClaw chat provider for editor panel
-  const kiloClawProvider = new KiloClawProvider(context.extensionUri, connectionService)
-  context.subscriptions.push(kiloClawProvider)
 
   // Create Agent Manager provider for editor panel
   const agentManagerHost = new VscodeHost(context.extensionUri, connectionService, context, remoteService)
@@ -202,16 +193,6 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   )
 
-  // Register serializer so KiloClaw panel restores when VS Code restarts
-  context.subscriptions.push(
-    vscode.window.registerWebviewPanelSerializer(KiloClawProvider.viewType, {
-      deserializeWebviewPanel(panel: vscode.WebviewPanel) {
-        kiloClawProvider.restorePanel(panel)
-        return Promise.resolve()
-      },
-    }),
-  )
-
   // Register serializer so "Open in Tab" restores when VS Code restarts
   context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer("kilo-code.new.TabPanel", {
@@ -263,15 +244,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Create standalone editor providers (open in editor area, not sidebar)
   const settingsEditorProvider = new SettingsEditorProvider(context.extensionUri, connectionService, context)
   settingsEditorProvider.setRemoteService(remoteService)
-  const marketplacePanelProvider = new MarketplacePanelProvider(context.extensionUri, connectionService, context)
-  context.subscriptions.push(settingsEditorProvider, marketplacePanelProvider)
+  context.subscriptions.push(settingsEditorProvider)
 
   // Create sub-agent viewer provider (read-only editor panel for sub-agent sessions)
   const subAgentViewerProvider = new SubAgentViewerProvider(context.extensionUri, connectionService, context)
   context.subscriptions.push(subAgentViewerProvider)
 
   // Register serializers so standalone panels restore on restart
-  const settingsViews = ["settingsPanel", "profilePanel"] as const
+  const settingsViews = ["settingsPanel"] as const
   for (const suffix of settingsViews) {
     context.subscriptions.push(
       vscode.window.registerWebviewPanelSerializer(`kilo-code.new.${suffix}`, {
@@ -282,15 +262,6 @@ export function activate(context: vscode.ExtensionContext) {
       }),
     )
   }
-
-  context.subscriptions.push(
-    vscode.window.registerWebviewPanelSerializer(MarketplacePanelProvider.viewType, {
-      deserializeWebviewPanel(panel: vscode.WebviewPanel) {
-        marketplacePanelProvider.deserializePanel(panel)
-        return Promise.resolve()
-      },
-    }),
-  )
 
   context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer(DiffViewerProvider.viewType, {
@@ -333,15 +304,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("kilo-code.new.sidebarTitle.agentManagerOpen", () => {
       track("agent_manager", "kilo-code.new.agentManagerOpen")
     }),
-    vscode.commands.registerCommand("kilo-code.new.sidebarTitle.kiloClawOpen", () => {
-      track("kiloclaw", "kilo-code.new.kiloClawOpen")
-    }),
-    vscode.commands.registerCommand("kilo-code.new.sidebarTitle.marketplaceButtonClicked", () => {
-      track("marketplace", "kilo-code.new.marketplaceButtonClicked")
-    }),
-    vscode.commands.registerCommand("kilo-code.new.sidebarTitle.profileButtonClicked", () => {
-      track("profile", "kilo-code.new.profileButtonClicked")
-    }),
     vscode.commands.registerCommand("kilo-code.new.sidebarTitle.settingsButtonClicked", () => {
       track("settings", "kilo-code.new.settingsButtonClicked")
     }),
@@ -352,12 +314,6 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("kilo-code.new.agentManagerOpen", () => {
       agentManagerProvider.openPanel()
-    }),
-    vscode.commands.registerCommand("kilo-code.new.marketplaceButtonClicked", (directory?: string | null) => {
-      marketplacePanelProvider.openPanel(directory)
-    }),
-    vscode.commands.registerCommand("kilo-code.new.kiloClawOpen", () => {
-      kiloClawProvider.openPanel()
     }),
     vscode.commands.registerCommand("kilo-code.new.historyButtonClicked", () => {
       const tab = activeTabProvider()
@@ -375,9 +331,6 @@ export function activate(context: vscode.ExtensionContext) {
       if (tab) tab.postMessage({ type: "action", action: "cyclePreviousAgentMode" })
       else provider.postMessage({ type: "action", action: "cyclePreviousAgentMode" })
       agentManagerProvider.postMessage({ type: "action", action: "cyclePreviousAgentMode" })
-    }),
-    vscode.commands.registerCommand("kilo-code.new.profileButtonClicked", () => {
-      settingsEditorProvider.openPanel("profile")
     }),
     vscode.commands.registerCommand("kilo-code.new.settingsButtonClicked", (tab?: string) => {
       settingsEditorProvider.openPanel("settings", tab)
@@ -491,20 +444,12 @@ export function activate(context: vscode.ExtensionContext) {
         const sessionMatch = uri.path.match(/^\/kilocode\/s\/([a-zA-Z0-9_-]+)$/)
         const sessionId = sessionMatch?.[1]
         if (sessionId) {
-          console.log("[Kilo New] URI handler: opening cloud session:", sessionId)
-          await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-          provider.openCloudSession(sessionId)
+          void vscode.window.showInformationMessage("Cloud sessions are disabled in this enterprise build.")
           return
         }
 
         if (uri.path !== "/kilocode/switch" && uri.path !== "/kilocode/model") return
-        const params = new URLSearchParams(uri.query)
-        const modelID = params.get("model") || undefined
-        const agent = params.get("agent") || undefined
-        if (!modelID && !agent) return
-        console.log("[Kilo New] URI handler: applying linked Kilo selection:", { modelID, agent })
-        await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-        provider.selectKiloModel(modelID, agent)
+        void vscode.window.showInformationMessage("Kilo cloud model links are disabled in this enterprise build.")
       },
     }),
   )

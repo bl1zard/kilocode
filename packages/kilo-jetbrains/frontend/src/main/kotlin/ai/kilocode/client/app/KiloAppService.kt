@@ -257,14 +257,19 @@ class KiloAppService internal constructor(
      * Returns [DeviceAuthDto] with the URL/code to display.
      * Throws on failure.
      */
-    suspend fun startLogin(directory: String? = null): DeviceAuthDto = call { startLogin(directory) }
+    suspend fun startLogin(directory: String? = null): DeviceAuthDto {
+        void(directory)
+        throw IllegalStateException("Login is disabled in this enterprise build.")
+    }
 
     /**
      * Complete the login flow. Blocks until authentication finishes.
      * Returns the user profile, or null if unavailable.
      */
     suspend fun completeLogin(directory: String? = null): ProfileDto? = try {
-        call { completeLogin(directory) }.also { setProfile(it) }
+        void(directory)
+        setProfile(null)
+        null
     } catch (e: Exception) {
         LOG.warn("login completion failed", e)
         null
@@ -272,9 +277,8 @@ class KiloAppService internal constructor(
 
     /** Log out and clear the user profile. */
     suspend fun logout(): Boolean = try {
-        call { logout() }.also { ok ->
-            if (ok) setProfile(null)
-        }
+        setProfile(null)
+        true
     } catch (e: Exception) {
         LOG.warn("logout failed", e)
         false
@@ -286,7 +290,8 @@ class KiloAppService internal constructor(
      * Returns the updated profile, or null if not logged in.
      */
     suspend fun setOrganization(organizationId: String?): ProfileDto? = try {
-        call { setOrganization(organizationId) }.also { setProfile(it) }
+        void(organizationId)
+        throw IllegalStateException("Login is disabled in this enterprise build.")
     } catch (e: Exception) {
         LOG.warn("organization switch failed", e)
         null
@@ -310,6 +315,10 @@ class KiloAppService internal constructor(
             profile = if (profile == null) ProfileStatusDto.NOT_LOGGED_IN else ProfileStatusDto.LOADED,
         )
         _state.value = current.copy(profile = profile, progress = progress)
+    }
+
+    private fun void(vararg values: Any?) {
+        values.forEach { _ -> }
     }
 }
 

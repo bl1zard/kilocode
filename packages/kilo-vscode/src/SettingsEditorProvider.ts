@@ -4,23 +4,21 @@ import { resolvePanelProjectDirectory } from "./project-directory"
 import type { KiloConnectionService } from "./services/cli-backend"
 import type { RemoteStatusService } from "./services/RemoteStatusService"
 
-type PanelView = "settings" | "profile" | "indexing"
+type PanelView = "settings" | "indexing"
 
 const PANEL_TITLES: Record<PanelView, string> = {
   settings: "Kilo Settings",
-  profile: "Kilo Profile",
   indexing: "Codebase Indexing",
 }
 
 /**
- * Opens Settings or Profile as an editor-area WebviewPanel,
- * keeping the sidebar chat undisturbed.
+ * Opens Settings as an editor-area WebviewPanel, keeping the sidebar chat undisturbed.
  *
  * Each view type is a singleton panel — calling openPanel() again
  * reveals the existing panel instead of creating a duplicate.
  *
  * Uses a full KiloProvider under the hood so each panel has
- * the same backend connectivity (config, providers, profile, auth)
+   * the same backend connectivity (config and providers)
  * as the sidebar.
  */
 export class SettingsEditorProvider implements vscode.Disposable {
@@ -100,7 +98,7 @@ export class SettingsEditorProvider implements vscode.Disposable {
     }
 
     // Create a dedicated KiloProvider for this panel so it has full
-    // backend connectivity (config, providers, agents, profile, auth).
+    // backend connectivity (config, providers, and agents).
     const provider = new KiloProvider(this.extensionUri, this.connectionService, this.context, {
       projectDirectory,
     })

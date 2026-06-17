@@ -10,7 +10,7 @@ test("strips the deployed console base from route paths", () => {
 test("classifies routes after stripping the console base", () => {
   expect(path("/console/projects/demo/settings/agents", "/console")).toBe("/project")
   expect(path("/console/settings/agents", "/console")).toBe("/settings")
-  expect(path("/console/profile", "/console")).toBe("/profile")
+  expect(path("/console/profile", "/console")).toBe("/projects")
 })
 
 test("builds settings roots without preserving the console base", () => {

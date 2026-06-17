@@ -5,7 +5,6 @@ import { useI18n } from "@kilocode/kilo-ui/context/i18n"
 import type { AssistantMessage as SDKAssistantMessage, Part as SDKPart, SnapshotFileDiff } from "@kilocode/sdk/v2"
 import type { TranscriptRow } from "../../context/transcript-rows"
 import { useSession } from "../../context/session"
-import { useServer } from "../../context/server"
 import { useLanguage } from "../../context/language"
 import { useVSCode } from "../../context/vscode"
 import { useFeedback } from "../../context/feedback"
@@ -21,7 +20,6 @@ interface TranscriptRowViewProps {
 
 export const TranscriptRowView: Component<TranscriptRowViewProps> = (props) => {
   const session = useSession()
-  const server = useServer()
   const language = useLanguage()
   const vscode = useVSCode()
   const feedback = useFeedback()
@@ -123,7 +121,7 @@ export const TranscriptRowView: Component<TranscriptRowViewProps> = (props) => {
       </Show>
 
       <Show when={props.row.type === "error" ? props.row : undefined}>
-        {(row) => <ErrorDisplay error={row().error as ErrorDisplayProps["error"]} onLogin={server.goToLogin} />}
+        {(row) => <ErrorDisplay error={row().error as ErrorDisplayProps["error"]} />}
       </Show>
     </div>
   )

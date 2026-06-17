@@ -76,8 +76,6 @@ function nav(input: URLSearchParams): Entry[] {
 
     rows.push({ kind: "NAV", label: `Global Settings · ${item.label}`, href: link(item.href, input) })
   }
-
-  rows.push({ kind: "NAV", label: "Profile", href: link("/profile", input) })
   return rows
 }
 

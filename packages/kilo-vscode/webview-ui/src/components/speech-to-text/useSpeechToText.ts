@@ -9,7 +9,7 @@ type VSCode = {
 }
 
 type Server = {
-  goToLogin: () => void
+  goToLogin?: () => void
 }
 
 type Lang = {
@@ -40,7 +40,7 @@ export type SpeechToText = {
   clear: () => void
 }
 
-export function useSpeechToText(vscode: VSCode, server: Server, lang: Lang): SpeechToText {
+export function useSpeechToText(vscode: VSCode, _server: Server, lang: Lang): SpeechToText {
   const [state, setState] = createSignal<SpeechState>("idle")
   const [error, setError] = createSignal<string | undefined>()
   const active = () => state() === "recording" || state() === "transcribing"
@@ -139,10 +139,7 @@ export function useSpeechToText(vscode: VSCode, server: Server, lang: Lang): Spe
     showToast({
       variant: "error",
       title: message,
-      actions: [
-        { label: lang.t("common.signIn"), onClick: server.goToLogin },
-        { label: lang.t("common.dismiss"), onClick: "dismiss" },
-      ],
+      actions: [{ label: lang.t("common.dismiss"), onClick: "dismiss" }],
     })
     fail(message, false)
   }

@@ -1,17 +1,16 @@
 /**
- * Cloud session handlers — extracted from KiloProvider.
+ * Cloud session handlers.
  *
- * Manages fetching cloud sessions, previewing them, and the "import + send"
- * flow that clones a cloud session locally on first message. No vscode dependency.
+ * Cloud account flows are disabled in the enterprise build. Local sessions,
+ * provider settings, MCP, and skills remain available.
  */
 
-import type { KiloClient, Session, TextPartInput, FilePartInput } from "@kilocode/sdk/v2/client"
-import type { CloudSessionData, EditorContext } from "../../services/cli-backend/types"
-import { getErrorMessage, sessionToWebview, mapCloudSessionMessageToWebviewMessage } from "../../kilo-provider-utils"
+import type { KiloClient, Session } from "@kilocode/sdk/v2/client"
+import type { EditorContext } from "../../services/cli-backend/types"
 import type { MessageFile } from "../message-files"
-import { reviewMetadata, type ReviewMessageData } from "../../shared/review-comments"
+import type { ReviewMessageData } from "../../shared/review-comments"
 
-const TIMEOUT = 30_000
+const CLOUD_DISABLED_MESSAGE = "Cloud sessions are disabled in this enterprise build."
 
 export interface CloudSessionContext {
   readonly client: KiloClient | null
@@ -30,86 +29,22 @@ export interface CloudSessionContext {
   ): Promise<T | undefined>
 }
 
-/** Fetch cloud sessions list and send to webview. */
 export async function handleRequestCloudSessions(
   ctx: CloudSessionContext,
   message: { cursor?: string; limit?: number; gitUrl?: string },
 ): Promise<void> {
-  if (!ctx.client) {
-    ctx.postMessage({ type: "error", message: "Not connected to CLI backend" })
-    return
-  }
-
-  try {
-    const result = await ctx.client.kilo.cloudSessions({
-      cursor: message.cursor,
-      limit: message.limit,
-      gitUrl: message.gitUrl,
-    })
-
-    ctx.postMessage({
-      type: "cloudSessionsLoaded",
-      sessions: result.data?.cliSessions ?? [],
-      nextCursor: result.data?.nextCursor ?? null,
-    })
-  } catch (error) {
-    console.error("[Kilo New] KiloProvider: Failed to fetch cloud sessions:", error)
-    ctx.postMessage({
-      type: "error",
-      message: error instanceof Error ? error.message : "Failed to fetch cloud sessions",
-    })
-  }
+  void message
+  ctx.postMessage({ type: "cloudSessionsLoaded", sessions: [], nextCursor: null })
 }
 
-/**
- * Fetch full cloud session data for read-only preview.
- * Transforms the export data into webview message format and sends it back.
- */
 export async function handleRequestCloudSessionData(ctx: CloudSessionContext, sessionId: string): Promise<void> {
-  if (!ctx.client) {
-    ctx.postMessage({
-      type: "cloudSessionImportFailed",
-      cloudSessionId: sessionId,
-      error: "Not connected to CLI backend",
-    })
-    return
-  }
-
-  try {
-    const result = await ctx.client.kilo.cloud.session.get({ id: sessionId }, { signal: AbortSignal.timeout(TIMEOUT) })
-    const data = result.data as CloudSessionData | undefined
-    if (!data) {
-      ctx.postMessage({
-        type: "cloudSessionImportFailed",
-        cloudSessionId: sessionId,
-        error: "Failed to fetch cloud session",
-      })
-      return
-    }
-
-    const messages = (data.messages ?? []).filter((m) => m.info).map(mapCloudSessionMessageToWebviewMessage)
-
-    ctx.postMessage({
-      type: "cloudSessionDataLoaded",
-      cloudSessionId: sessionId,
-      title: data.info.title ?? "Untitled",
-      messages,
-    })
-  } catch (err) {
-    console.error("[Kilo New] Failed to load cloud session data:", err)
-    ctx.postMessage({
-      type: "cloudSessionImportFailed",
-      cloudSessionId: sessionId,
-      error: err instanceof Error ? err.message : "Failed to load cloud session",
-    })
-  }
+  ctx.postMessage({
+    type: "cloudSessionImportFailed",
+    cloudSessionId: sessionId,
+    error: CLOUD_DISABLED_MESSAGE,
+  })
 }
 
-/**
- * Import a cloud session to local storage, then send a new message on it.
- * This is the "clone on first message" flow — the cloud session becomes a
- * local session only when the user decides to continue it.
- */
 export async function handleImportAndSend(
   ctx: CloudSessionContext,
   cloudSessionId: string,
@@ -124,125 +59,19 @@ export async function handleImportAndSend(
   command?: string,
   commandArgs?: string,
 ): Promise<void> {
-  if (!ctx.client) {
-    ctx.postMessage({
-      type: "cloudSessionImportFailed",
-      cloudSessionId,
-      error: "Not connected to CLI backend",
-    })
-    return
-  }
-
-  const client = ctx.client
-  const dir = ctx.getWorkspaceDirectory()
-
-  // Step 1: Import the cloud session with fresh IDs
-  let session: Session | undefined
-  try {
-    const result = await ctx.client.kilo.cloud.session.import(
-      {
-        sessionId: cloudSessionId,
-        directory: dir,
-      },
-      { signal: AbortSignal.timeout(TIMEOUT) },
-    )
-    session = result.data as Session | undefined
-  } catch (error) {
-    console.error("[Kilo New] KiloProvider: ❌ Cloud session import failed:", error)
-    ctx.postMessage({
-      type: "cloudSessionImportFailed",
-      cloudSessionId,
-      error: getErrorMessage(error) || "Failed to import session from cloud",
-    })
-    return
-  }
-  if (!session) {
-    ctx.postMessage({
-      type: "cloudSessionImportFailed",
-      cloudSessionId,
-      error: "Failed to import session from cloud",
-    })
-    return
-  }
-
-  // Track the new local session
-  ctx.currentSession = session
-  ctx.trackedSessionIds.add(session.id)
-
-  // Notify webview of the import success
+  void text
+  void messageID
+  void providerID
+  void modelID
+  void agent
+  void variant
+  void files
+  void review
+  void command
+  void commandArgs
   ctx.postMessage({
-    type: "cloudSessionImported",
+    type: "cloudSessionImportFailed",
     cloudSessionId,
-    session: sessionToWebview(session),
+    error: CLOUD_DISABLED_MESSAGE,
   })
-
-  // Step 2: Send the user's message/command on the new local session
-  const run = ctx.runWithMessageConfirmation ?? ((_id, _label, fn) => fn())
-  try {
-    await run(messageID, "Cloud import send", async () => {
-      if (messageID) {
-        ctx.connectionService.recordMessageSessionId(messageID, session.id)
-      }
-
-      if (command) {
-        const parts = files?.map((f) => ({
-          type: "file" as const,
-          mime: f.mime,
-          url: f.url,
-          filename: f.filename,
-          source: f.source,
-        }))
-        await client.session.command(
-          {
-            sessionID: session.id,
-            directory: dir,
-            command,
-            arguments: commandArgs ?? "",
-            messageID,
-            model: providerID && modelID ? `${providerID}/${modelID}` : undefined,
-            agent,
-            variant,
-            parts,
-          },
-          { throwOnError: true },
-        )
-        return
-      }
-
-      const parts: Array<TextPartInput | FilePartInput> = []
-      if (files) {
-        for (const f of files) {
-          parts.push({ type: "file", mime: f.mime, url: f.url, filename: f.filename, source: f.source })
-        }
-      }
-      parts.push({ type: "text", text, metadata: review ? reviewMetadata(review) : undefined })
-
-      const editorContext = await ctx.gatherEditorContext()
-      await client.session.promptAsync(
-        {
-          sessionID: session.id,
-          directory: dir,
-          messageID,
-          parts,
-          model: providerID && modelID ? { providerID, modelID } : undefined,
-          agent,
-          variant,
-          editorContext,
-        },
-        { throwOnError: true },
-      )
-    })
-  } catch (err) {
-    console.error("[Kilo New] Failed to send message after cloud import:", err)
-    ctx.postMessage({
-      type: "sendMessageFailed",
-      error: err instanceof Error ? err.message : "Failed to send message after import",
-      text,
-      sessionID: session.id,
-      draftID: session.id,
-      messageID,
-      files,
-      review: command ? undefined : review,
-    })
-  }
 }

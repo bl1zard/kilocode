@@ -29,8 +29,14 @@ export async function fetchMarketplaceData(
   project: string | undefined,
   dir: string | undefined,
 ): Promise<MarketplaceDataResponse> {
-  const skills = dir ? await fetchSkills(ctx, dir) : undefined
-  return ctx.marketplace.fetchData(project, skills)
+  void ctx
+  void project
+  void dir
+  return {
+    marketplaceItems: [],
+    marketplaceInstalledMetadata: { project: {}, global: {} },
+    errors: ["Marketplace is disabled in this enterprise build."],
+  }
 }
 
 export async function installMarketplaceItem(

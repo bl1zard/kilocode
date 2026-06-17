@@ -83,6 +83,18 @@ describe("TelemetryEvent", () => {
 })
 
 describe("Telemetry", () => {
+  test("is permanently disabled", () => {
+    Telemetry.init({ appName: "test", appVersion: "0.0.0", platform: "test" })
+    Telemetry.setEnabled(true)
+    expect(Telemetry.isEnabled()).toBe(false)
+  })
+
+  test("tracking helpers are no-ops", () => {
+    expect(() => Telemetry.track(TelemetryEvent.CLI_START)).not.toThrow()
+    expect(() => Telemetry.trackCliStart()).not.toThrow()
+    expect(() => Telemetry.trackError("test")).not.toThrow()
+  })
+
   test("indexing helpers are exposed", () => {
     expect(typeof Telemetry.trackIndexingStarted).toBe("function")
     expect(typeof Telemetry.trackIndexingCompleted).toBe("function")
@@ -96,4 +108,3 @@ describe("Telemetry", () => {
     expect(typeof Telemetry.trackSuggestionAccepted).toBe("function")
   })
 })
-

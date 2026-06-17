@@ -41,7 +41,7 @@ function setup() {
 }
 
 describe("useSpeechToText", () => {
-  it("offers sign-in when stored credentials stop authenticating", () => {
+  it("does not offer sign-in when stored credentials stop authenticating", () => {
     const ctx = setup()
 
     ctx.speech.start({ model: "scribe", insert: () => {} })
@@ -57,7 +57,7 @@ describe("useSpeechToText", () => {
     const action = toasts[0]?.actions?.find((item) => typeof item.onClick === "function")
     if (typeof action?.onClick === "function") action.onClick()
 
-    expect(ctx.logins()).toBe(1)
+    expect(ctx.logins()).toBe(0)
     expect(ctx.speech.error()).toBe("speechToText.error.loginRequired")
     ctx.dispose()
   })

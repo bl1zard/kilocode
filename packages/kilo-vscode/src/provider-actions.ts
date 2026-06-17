@@ -9,7 +9,12 @@ import {
   sanitizeCustomProviderConfig,
   withCustomProviderDeletions,
 } from "./shared/custom-provider"
-import { isCustomProviderPackage, KILO_AUTO, KILO_PROVIDER_ID, parseModelString } from "./shared/provider-model"
+import {
+  ENTERPRISE_DEFAULT_MODEL,
+  isCustomProviderPackage,
+  KILO_PROVIDER_ID,
+  parseModelString,
+} from "./shared/provider-model"
 import { configFeatures } from "./features"
 
 /**
@@ -59,15 +64,9 @@ export async function fetchProviderData(client: KiloClient, dir: string) {
           .then((r) => r.data ?? {})
           .catch(() => ({}))
       : Promise.resolve({})
-  const kiloRequest = client.kilo
-    .authStatus({ directory: dir }, { throwOnError: true })
-    .then((r) => (r.data?.authenticated ? (r.data.type ?? null) : null))
-    .catch(() => null)
-
-  const [{ data: response }, authMethods, kiloAuth] = await Promise.all([
+  const [{ data: response }, authMethods] = await Promise.all([
     client.provider.list({ directory: dir }, { throwOnError: true }),
     authRequest,
-    kiloRequest,
   ])
   const authStates: Record<string, AuthState> = {}
   const storedKeys: Record<string, StoredProviderKey> = {}
@@ -89,7 +88,6 @@ export async function fetchProviderData(client: KiloClient, dir: string) {
     return next as (typeof response.all)[number]
   })
   delete authStates[KILO_PROVIDER_ID]
-  if (kiloAuth) authStates[KILO_PROVIDER_ID] = kiloAuth
   return { response: { ...response, all }, authMethods, authStates, storedKeys }
 }
 
@@ -179,7 +177,7 @@ export function computeDefaultSelection(
   const configured = parseModelString(cachedConfig?.config?.model)
   if (configured) return configured
   if (vscodePID && vscodeMID) return { providerID: vscodePID, modelID: vscodeMID }
-  return { ...KILO_AUTO }
+  return { ...ENTERPRISE_DEFAULT_MODEL }
 }
 
 type PostMessage = (message: unknown) => void

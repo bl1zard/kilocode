@@ -148,7 +148,6 @@ import type { Agent } from "@kilocode/sdk/v2/client"
 import { configFeatures } from "./features"
 import { createAutoApproveBridge } from "./kilo-provider/auto-approve"
 import type { KiloProviderOptions } from "./kilo-provider/options"
-import { fetchKiloEmbeddingModelCatalog } from "@kilocode/kilo-gateway"
 import { stopSessionProcesses } from "./kilo-provider/background-process"
 
 type MessageLoadMode = "replace" | "prepend" | "focus" | "reconcile"
@@ -532,14 +531,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       })
     }
 
-    // Always attempt to fetch+push profile when connected.
-    // Profile returns 401 when user isn't logged into Kilo Gateway — that's expected.
-    // Use fire-and-forget (no throwOnError) to match old getProfile() which returned null on error.
     if (this.connectionState === "connected" && this.client) {
-      console.log("[Kilo New] KiloProvider: 👤 syncWebviewState fetching profile...")
-      const profileResult = await retry(() => this.client!.kilo.profile())
-      const profileData = profileResult.data ?? null
-      console.log("[Kilo New] KiloProvider: 👤 syncWebviewState profile:", profileData ? "received" : "null")
+      const profileData = null
+      console.log("[Kilo New] KiloProvider: enterprise profile disabled")
       this.postMessage({
         type: "profileData",
         data: profileData,
@@ -925,7 +919,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
           await openConfig(message.scope, message.labels, this.getProjectDirectory(this.currentSession?.id))
           break
         case "openMarketplacePanel":
-          vscode.commands.executeCommand("kilo-code.new.marketplaceButtonClicked", this.projectDirectory)
+          vscode.window.showInformationMessage("Marketplace is disabled in this enterprise build.")
           break
         case "forkSession":
           handleForkSession(this.forkCtx, message.sessionId, message.messageId).catch((e) =>
@@ -1343,8 +1337,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             // Profile fetch is best-effort — returns 401 when user isn't logged into gateway.
             const sdkClient = this.client
             if (sdkClient) {
-              const profileResult = await sdkClient.kilo.profile()
-              this.postMessage({ type: "profileData", data: profileResult.data ?? null })
+              this.postMessage({ type: "profileData", data: null })
             }
             await this.syncWebviewState("sse-connected")
             await this.flushPendingSessionRefresh("sse-connected")
@@ -2186,7 +2179,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   }
 
   private async fetchAndSendKiloEmbeddingModels(): Promise<void> {
-    const catalog = await fetchKiloEmbeddingModelCatalog()
+    const catalog: unknown[] = []
     const message = { type: "kiloEmbeddingModelsLoaded", catalog }
     this.cachedKiloEmbeddingModelsMessage = message
     this.postMessage(message)
@@ -2308,7 +2301,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     }
 
     try {
-      const { data: all } = await retry(() => this.client!.kilo.notifications(undefined, { throwOnError: true }))
+      const all: Array<{ id: string; showIn?: string[] }> = []
       const notifications = all.filter((n) => !n.showIn || n.showIn.includes("extension"))
       const existing = this.extensionContext?.globalState.get<string[]>("kilo.dismissedNotificationIds", []) ?? []
       const active = new Set(notifications.map((n) => n.id))
@@ -2921,7 +2914,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
 
     // Org switch succeeded — refresh profile and providers independently (best-effort)
     try {
-      const profileResult = await this.client!.kilo.profile()
+      const profileResult = { data: null }
       // Broadcast to all webviews (sidebar, profile tab, agent manager, etc.)
       this.connectionService.notifyProfileChanged(profileResult.data ?? null)
     } catch (error) {

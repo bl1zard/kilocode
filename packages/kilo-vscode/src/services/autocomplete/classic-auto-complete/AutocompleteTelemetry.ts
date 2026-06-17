@@ -90,9 +90,8 @@ export class AutocompleteTelemetry {
    *  - (not captured) request is not answered, for instance because we are debouncing (i.e. user is still typing)
    */
   public captureSuggestionRequested(context: AutocompleteContext): void {
-    // Temporarily disabled for cost reduction: this event represents >50% of our PostHog
-    // event volume and we don't use it for reporting (we only care about suggestions
-    // accepted). See Slack discussion in #general on 2026-04-29.
+    // Enterprise telemetry is hard-disabled, but the method remains for compatibility
+    // with existing autocomplete call sites.
     // this.captureEvent(TelemetryEventName.AUTOCOMPLETE_SUGGESTION_REQUESTED, {
     //   languageId: context.languageId,
     //   modelId: context.modelId,

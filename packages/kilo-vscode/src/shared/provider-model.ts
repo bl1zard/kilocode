@@ -1,5 +1,6 @@
 export const KILO_PROVIDER_ID = "kilo"
 export const KILO_AUTO = { providerID: KILO_PROVIDER_ID, modelID: "kilo-auto/free" } as const
+export const ENTERPRISE_DEFAULT_MODEL = { providerID: "openai", modelID: "gpt-4o-mini" } as const
 export const CUSTOM_PROVIDER_PACKAGES = ["@ai-sdk/openai-compatible", "@ai-sdk/openai", "@ai-sdk/anthropic"] as const
 export type CustomProviderPackage = (typeof CUSTOM_PROVIDER_PACKAGES)[number]
 export const CUSTOM_PROVIDER_PACKAGE: CustomProviderPackage = "@ai-sdk/openai-compatible"
